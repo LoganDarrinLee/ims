@@ -5,23 +5,51 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
+	"context"
+	"log"
+	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/spf13/cobra"
+
+	"github.com/LoganDarrinLee/ims/internal/common"
+	"github.com/LoganDarrinLee/ims/internal/config"
+	"github.com/LoganDarrinLee/ims/internal/db"
 )
 
 // startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:   "start",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Start the local inventory manager.",
+	Long: `
+		Spin up the local inventory manager. Will handle local updates as well as sending 
+		updates to the server on regular intervals or when the core server makes a request on 
+		behalf of another inventory instance. 
+	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("start called")
+		env := config.NewEnv()
+		ctx := context.Background()
+		logger := &common.BasicLogger{}
+		pool := db.InitDB(env, ctx)
+		r := chi.NewRouter() 
+
+		config.ConfigureServices(
+			env,
+			logger,
+			pool,
+			r,
+		)
+
+		s := &http.Server{
+			Addr: env.ServerPort,
+			Handler: r, 
+		}
+
+		go common.GracefulShutdown(ctx, s)
+
+		log.Printf("Starting server on port: %s. Press `Ctrl + c` to exit.", s.Addr)
+		s.ListenAndServe()
+		log.Println("Shutting down.")
 	},
 }
 
