@@ -3,8 +3,8 @@
 # Exit on error 
 set -e
 
-# Set our development environment up
-source .env 
+# Export all variables from .env
+export $(grep -v '^#' .env | xargs) 
 
 if [[ -f "build/ims" ]]; then
   ./build/ims migrate 

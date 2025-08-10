@@ -25,7 +25,6 @@ func InitDB(env *config.EnvConfig, ctx context.Context) (*pgxpool.Pool) {
 		panic(err)
 	}
 	dbconfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-		fmt.Println("inside func")
 		pgxuuid.Register(conn.TypeMap())
 		return nil
 	}
@@ -40,9 +39,9 @@ func InitDB(env *config.EnvConfig, ctx context.Context) (*pgxpool.Pool) {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("Successfully acquired imsion, now releasing.")
+	log.Println("Successfully acquired connection, now releasing.")
 	conn.Release()
 
-	log.Println("Database imsed successfully.")
+	log.Println("Database connected successfully.")
 	return dbpool
 }
