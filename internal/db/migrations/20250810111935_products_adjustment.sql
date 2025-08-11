@@ -22,3 +22,5 @@ alter table products
 -- +goose Down
 drop table if exists units_of_measurements;
 drop table if exists product_uoms;
+
+alter table products delete column name;
