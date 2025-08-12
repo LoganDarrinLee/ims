@@ -3,7 +3,7 @@
 --
 
 -- Dumped from database version 14.15 (Debian 14.15-1.pgdg120+1)
--- Dumped by pg_dump version 14.18 (Ubuntu 14.18-0ubuntu0.22.04.1)
+-- Dumped by pg_dump version 16.9 (Ubuntu 16.9-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -15,6 +15,15 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: development_user
+--
+
+-- *not* creating schema, since initdb creates it
+
+
+ALTER SCHEMA public OWNER TO development_user;
 
 SET default_tablespace = '';
 
@@ -116,6 +125,42 @@ CREATE TABLE public.product_categories (
 ALTER TABLE public.product_categories OWNER TO development_user;
 
 --
+-- Name: product_uoms; Type: TABLE; Schema: public; Owner: development_user
+--
+
+CREATE TABLE public.product_uoms (
+    id uuid NOT NULL,
+    product_id uuid,
+    uom_id uuid,
+    parent_uom_id uuid,
+    senior_uom boolean DEFAULT false,
+    has_child_uom boolean DEFAULT false,
+    parent_uom_qantity_multiplier integer,
+    purchasing_cost real,
+    uom_barcode text
+);
+
+
+ALTER TABLE public.product_uoms OWNER TO development_user;
+
+--
+-- Name: COLUMN product_uoms.senior_uom; Type: COMMENT; Schema: public; Owner: development_user
+--
+
+COMMENT ON COLUMN public.product_uoms.senior_uom IS 'The largest unit of measurement we purchase in.';
+
+
+--
+-- Name: COLUMN product_uoms.parent_uom_qantity_multiplier; Type: COMMENT; Schema: public; Owner: development_user
+--
+
+COMMENT ON COLUMN public.product_uoms.parent_uom_qantity_multiplier IS '
+  The quantity of the current product_uom that come in the parent_uom.  
+  For exampe selling soda cans: Pallets have 100 boxes, each box has twelve cans.
+';
+
+
+--
 -- Name: products; Type: TABLE; Schema: public; Owner: development_user
 --
 
@@ -124,7 +169,9 @@ CREATE TABLE public.products (
     product_category_id uuid,
     supplier_id uuid,
     cost real,
-    selling real
+    selling real,
+    name character varying(40),
+    barcode text
 );
 
 
@@ -141,6 +188,19 @@ CREATE TABLE public.suppliers (
 
 
 ALTER TABLE public.suppliers OWNER TO development_user;
+
+--
+-- Name: units_of_measurements; Type: TABLE; Schema: public; Owner: development_user
+--
+
+CREATE TABLE public.units_of_measurements (
+    id uuid NOT NULL,
+    uom_name character varying(40) NOT NULL,
+    uom_abbreviation character varying(4)
+);
+
+
+ALTER TABLE public.units_of_measurements OWNER TO development_user;
 
 --
 -- Name: users; Type: TABLE; Schema: public; Owner: development_user
@@ -204,6 +264,14 @@ ALTER TABLE ONLY public.product_categories
 
 
 --
+-- Name: product_uoms product_uoms_pkey; Type: CONSTRAINT; Schema: public; Owner: development_user
+--
+
+ALTER TABLE ONLY public.product_uoms
+    ADD CONSTRAINT product_uoms_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: products products_pkey; Type: CONSTRAINT; Schema: public; Owner: development_user
 --
 
@@ -217,6 +285,22 @@ ALTER TABLE ONLY public.products
 
 ALTER TABLE ONLY public.suppliers
     ADD CONSTRAINT suppliers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: units_of_measurements units_of_measurements_pkey; Type: CONSTRAINT; Schema: public; Owner: development_user
+--
+
+ALTER TABLE ONLY public.units_of_measurements
+    ADD CONSTRAINT units_of_measurements_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: units_of_measurements units_of_measurements_uom_name_key; Type: CONSTRAINT; Schema: public; Owner: development_user
+--
+
+ALTER TABLE ONLY public.units_of_measurements
+    ADD CONSTRAINT units_of_measurements_uom_name_key UNIQUE (uom_name);
 
 
 --
@@ -252,11 +336,43 @@ ALTER TABLE ONLY public.order_items
 
 
 --
+-- Name: product_uoms product_uoms_parent_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: development_user
+--
+
+ALTER TABLE ONLY public.product_uoms
+    ADD CONSTRAINT product_uoms_parent_uom_id_fkey FOREIGN KEY (parent_uom_id) REFERENCES public.units_of_measurements(id);
+
+
+--
+-- Name: product_uoms product_uoms_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: development_user
+--
+
+ALTER TABLE ONLY public.product_uoms
+    ADD CONSTRAINT product_uoms_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: product_uoms product_uoms_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: development_user
+--
+
+ALTER TABLE ONLY public.product_uoms
+    ADD CONSTRAINT product_uoms_uom_id_fkey FOREIGN KEY (uom_id) REFERENCES public.units_of_measurements(id);
+
+
+--
 -- Name: products products_product_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: development_user
 --
 
 ALTER TABLE ONLY public.products
     ADD CONSTRAINT products_product_category_id_fkey FOREIGN KEY (product_category_id) REFERENCES public.product_categories(id);
+
+
+--
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: development_user
+--
+
+REVOKE USAGE ON SCHEMA public FROM PUBLIC;
+GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
 --
