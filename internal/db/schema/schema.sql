@@ -56,7 +56,8 @@ CREATE TABLE public.inventory_items (
     id uuid NOT NULL,
     product_id uuid,
     inventory_location_id uuid,
-    quantity_in_location integer
+    quantity_in_location integer,
+    product_uom_id uuid
 );
 
 
@@ -68,11 +69,35 @@ ALTER TABLE public.inventory_items OWNER TO development_user;
 
 CREATE TABLE public.inventory_locations (
     id uuid NOT NULL,
-    location character varying(100)
+    location character varying(100),
+    barcode text
 );
 
 
 ALTER TABLE public.inventory_locations OWNER TO development_user;
+
+--
+-- Name: inventory_transactions; Type: TABLE; Schema: public; Owner: development_user
+--
+
+CREATE TABLE public.inventory_transactions (
+    id uuid NOT NULL,
+    transaction_timestamp timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    inventory_location_id uuid,
+    product_id uuid,
+    product_uom uuid,
+    transaction_amount integer
+);
+
+
+ALTER TABLE public.inventory_transactions OWNER TO development_user;
+
+--
+-- Name: COLUMN inventory_transactions.transaction_amount; Type: COMMENT; Schema: public; Owner: development_user
+--
+
+COMMENT ON COLUMN public.inventory_transactions.transaction_amount IS 'Can be either negative or positive.';
+
 
 --
 -- Name: order_items; Type: TABLE; Schema: public; Owner: development_user
@@ -96,7 +121,8 @@ CREATE TABLE public.orders (
     id uuid NOT NULL,
     order_total real,
     tax_amount real,
-    final_total real
+    final_total real,
+    completed boolean
 );
 
 
@@ -181,6 +207,34 @@ CREATE TABLE public.suppliers (
 ALTER TABLE public.suppliers OWNER TO development_user;
 
 --
+-- Name: total_allocated_products; Type: TABLE; Schema: public; Owner: development_user
+--
+
+CREATE TABLE public.total_allocated_products (
+    id uuid NOT NULL,
+    product_id uuid,
+    allocated integer,
+    available integer
+);
+
+
+ALTER TABLE public.total_allocated_products OWNER TO development_user;
+
+--
+-- Name: total_product_in_inventory; Type: TABLE; Schema: public; Owner: development_user
+--
+
+CREATE TABLE public.total_product_in_inventory (
+    id uuid NOT NULL,
+    product_id uuid,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    total_product_on_hand integer
+);
+
+
+ALTER TABLE public.total_product_in_inventory OWNER TO development_user;
+
+--
 -- Name: units_of_measurements; Type: TABLE; Schema: public; Owner: development_user
 --
 
@@ -228,6 +282,14 @@ ALTER TABLE ONLY public.inventory_items
 
 ALTER TABLE ONLY public.inventory_locations
     ADD CONSTRAINT inventory_locations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: inventory_transactions inventory_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: development_user
+--
+
+ALTER TABLE ONLY public.inventory_transactions
+    ADD CONSTRAINT inventory_transactions_pkey PRIMARY KEY (id);
 
 
 --
@@ -279,6 +341,22 @@ ALTER TABLE ONLY public.suppliers
 
 
 --
+-- Name: total_allocated_products total_allocated_products_pkey; Type: CONSTRAINT; Schema: public; Owner: development_user
+--
+
+ALTER TABLE ONLY public.total_allocated_products
+    ADD CONSTRAINT total_allocated_products_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: total_product_in_inventory total_product_in_inventory_pkey; Type: CONSTRAINT; Schema: public; Owner: development_user
+--
+
+ALTER TABLE ONLY public.total_product_in_inventory
+    ADD CONSTRAINT total_product_in_inventory_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: units_of_measurements units_of_measurements_pkey; Type: CONSTRAINT; Schema: public; Owner: development_user
 --
 
@@ -319,6 +397,22 @@ ALTER TABLE ONLY public.inventory_items
 
 
 --
+-- Name: inventory_items inventory_items_product_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: development_user
+--
+
+ALTER TABLE ONLY public.inventory_items
+    ADD CONSTRAINT inventory_items_product_uom_id_fkey FOREIGN KEY (product_uom_id) REFERENCES public.product_uoms(id);
+
+
+--
+-- Name: inventory_transactions inventory_transactions_inventory_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: development_user
+--
+
+ALTER TABLE ONLY public.inventory_transactions
+    ADD CONSTRAINT inventory_transactions_inventory_location_id_fkey FOREIGN KEY (inventory_location_id) REFERENCES public.inventory_locations(id);
+
+
+--
 -- Name: order_items order_items_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: development_user
 --
 
@@ -356,6 +450,22 @@ ALTER TABLE ONLY public.product_uoms
 
 ALTER TABLE ONLY public.products
     ADD CONSTRAINT products_product_category_id_fkey FOREIGN KEY (product_category_id) REFERENCES public.product_categories(id);
+
+
+--
+-- Name: total_allocated_products total_allocated_products_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: development_user
+--
+
+ALTER TABLE ONLY public.total_allocated_products
+    ADD CONSTRAINT total_allocated_products_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: total_product_in_inventory total_product_in_inventory_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: development_user
+--
+
+ALTER TABLE ONLY public.total_product_in_inventory
+    ADD CONSTRAINT total_product_in_inventory_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
 
 
 --
